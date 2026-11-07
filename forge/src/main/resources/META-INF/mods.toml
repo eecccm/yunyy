@@ -1,0 +1,27 @@
+modLoader="javafml"
+# FML 版本取自本实例 fmlloader-26.2-65.1.5.jar 的 Implementation-Version（65.1.5），
+# 写成 [65,) 与该大版本严格对齐；旧值 [52,) 是 Forge 1.21.x 的 FML 线，语义过宽。
+loaderVersion="[65,)"
+license="GPL-3.0 with linking exception"
+
+# 注意：[features] 是 NeoForge 专有的语言特性表，Forge 26.2 的 ModFileParser 不解析该段，
+# 写在这里会被静默忽略。Forge 的 Java 25 运行要求由加载器自身（fmlloader）保证，
+# 模组侧无需也无法通过元数据声明。保留此段仅为与 neoforge 侧元数据结构对齐，不产生实际约束。
+[features.${mod_id}]
+javaVersion="[25,)"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+description='''${mod_description}'''
+authors="${mod_authors}"
+logoFile="assets/yunyy/icon.png"
+credits="eecccm 与 AI 协作开发，部分内容由 AI 辅助生成"
+
+[[dependencies.${mod_id}]]
+    modId="forge"
+    mandatory=true
+    versionRange="[26.2,)"
+    ordering="NONE"
+    side="BOTH"

@@ -1,0 +1,34 @@
+modLoader="javafml"
+# FMLloader 版本取自本实例 fancymodloader loader-11.0.16.jar 的 Specification-Version（11），
+# 与 NeoForge 26.2 运行时的 FML 大版本严格对齐，不使用 [1,) 这种无约束下限。
+loaderVersion="[11,)"
+license="GPL-3.0 with linking exception"
+
+[features.${mod_id}]
+javaVersion="[25,)"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+description='''${mod_description}'''
+authors="${mod_authors}"
+logoFile="assets/yunyy/icon.png"
+credits="eecccm 与 AI 协作开发，部分内容由 AI 辅助生成"
+
+# 客户端 Mixin：与 Fabric 侧 yunyy.client.mixins.json 内容等价。
+# 缺这一段时 SyncPauseMixin（屏蔽 Minecraft 自身对云音乐声道的 unpause）与
+# TempCleanupMixin（音频库清理时释放模组持有的音源句柄）不会被加载，
+# 表现为"暂停被游戏恢复"与"声道重置后句柄泄漏"，与 Fabric 端能力不对等。
+[[mixins]]
+config="yunyy.mixins.json"
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    mandatory=true
+    versionRange="${neo_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[modproperties.${mod_id}]
+yunyy_ai_generated="true"

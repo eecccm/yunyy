@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.eecccm.yunyy.mccore.mixin.client",
+  "compatibilityLevel": "JAVA_22",
+  "client": [
+    "SyncPauseMixin",
+    "TempCleanupMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

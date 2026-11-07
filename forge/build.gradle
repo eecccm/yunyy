@@ -1,0 +1,128 @@
+/*
+ * 云音乐（yunyy）— Minecraft 模组
+ * Copyright (C) 2026 eecccm
+ * 本文件由 eecccm 与 AI 协作完成，部分内容经由 AI 辅助生成。
+ *
+ * 本程序是自由软件：你可以根据自由软件基金会发布的 GNU 通用公共许可证
+ * （版本 3，或（按你的选择）任何更高版本）的条款重新分发和/或修改它。
+ *
+ * 本程序分发的目的是希望它有用，但没有任何担保；甚至没有适销性或
+ * 特定用途适用性的隐含担保。详见 GNU 通用公共许可证。
+ *
+ * 你应当已经收到一份 GNU 通用公共许可证的副本；如果没有，请见
+ * <https://www.gnu.org/licenses/>。
+ *
+ * 附加许可（依据 GPL-3.0 第 7 条）：本模组适用“链接例外”，允许本模组与
+ * Minecraft 及 Forge / Fabric / NeoForge 等运行时链接，而无需使这些运行时
+ * 或任何组合作品整体受到 GPL 约束。GPL-3.0 仅约束本模组自身代码。
+ */
+
+/*
+ * ============================================================================
+ * forge 模块构建方案（关键架构决策，已纠正）
+ * ============================================================================
+ * Forge 与 NeoForge 是相互独立的两套构件，坐标体系完全不同：
+ *   - NeoForge = net.neoforged:neoforge:<MC>.<minor>.<patch>   （如 26.2.0.90）
+ *       由 ModDevGradle 构建，对应 neoforge 模块（neoForge{ version } 只认该坐标）。
+ *   - Forge    = net.minecraftforge:forge:<MC>-<build>         （如 26.2-65.1.5）
+ *       必须由 ForgeGradle 构建，对应本模块。
+ *
+ * 此前 forge 模块误用 ModDevGradle（net.neoforged.moddev），导致 CI 解析
+ * net.neoforged:neoforge:26.2-65.1.5 失败（Actions run #1 已验证：
+ * Could not find net.neoforged:neoforge:26.2-65.1.5）。根因是 MDG 只能解析
+ * net.neoforged:neoforge，碰不到 net.minecraftforge:forge。
+ *
+ * 故本模块改用 ForgeGradle（net.minecraftforge.gradle）7.0.40，依赖
+ * net.minecraftforge:forge:26.2-65.1.5（已由本机/CI 可达的 maven.minecraftforge.net
+ * 验证该版本真实存在）。
+ *
+ * common / mccore 不独立编译（mccore 无 MC 依赖、jar 已禁用），采用与
+ * neoforge 模块 neoForge{ mods{ sourceSet ... } }、fabric 模块 loom{ mods{ sourceSet ... } }
+ * 等价的方式：把 common / mccore 的源码与资源目录并入本模块的 main 源集，
+ * 由 ForgeGradle 统一提供反混淆后的 Minecraft 类进行编译，并最终随 main 源集
+ * 一并打进 jar。这样产出的 forge jar 与 neoforge/fabric jar 结构完全一致。
+ * ============================================================================
+ */
+
+plugins {
+    // ForgeGradle 7.x：支持 MC 1.20.4+，本模组目标 MC 26.2 适用。
+    id 'net.minecraftforge.gradle' version '7.0.40'
+}
+
+version = rootProject.property('mod_version')
+group = rootProject.property('mod_group_id')
+
+// 将 common / mccore 的源码与资源目录并入本模块的 main 源集（使用相对路径，
+// 避免跨工程配置顺序依赖）。common 贡献 assets/yunyy/{icon.png,lang/*}，
+// mccore 贡献 MC 耦合的纯源码（不含 resources）。
+sourceSets {
+    main {
+        java {
+            srcDirs += ['../common/src/main/java', '../mccore/src/main/java']
+        }
+        resources {
+            srcDirs += ['../common/src/main/resources']
+        }
+    }
+}
+
+minecraft {
+    // MC 基础版本（注意：这里是 <MC> 版本，具体 Forge 构件在 dependencies 中指定）
+    version = "${minecraft_version}"
+    // 官方映射（ForgeGradle 从 Mojang 官方映射仓库解析）
+    mappings channel: 'official', version: "${minecraft_version}"
+
+    runs {
+        // ForgeGradle 7 的 run 注册方式（与旧版 client()/server() 写法不同）
+        register('client')
+        register('server') {
+            args '--nogui'
+        }
+    }
+}
+
+// ForgeGradle 7 依赖仓库：forgeMaven 解析 net.minecraftforge:forge，
+// minecraftLibsMaven 解析 Minecraft 官方库，mavenizer 提供官方映射。
+// （根工程 subprojects 已包含 mavenCentral，此处追加 Forge 专属仓库，互不冲突）
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    // Forge 本体：net.minecraftforge:forge:<MC>-<build>
+    // 由 ForgeGradle 解析（settings.gradle 已配置 Forge 插件仓库）。
+    implementation minecraft.dependency("net.minecraftforge:forge:${forge_version}")
+
+    // Gson：common 层以 api 暴露的版本，此处对齐引入。common 源码编译时依赖 Gson。
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    filesMatching('META-INF/mods.toml') {
+        expand 'mod_id': mod_id, 'mod_name': mod_name, 'mod_version': mod_version,
+               'mod_authors': mod_authors, 'mod_description': mod_description,
+               'minecraft_version': minecraft_version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+// 最终 jar：ForgeGradle 的 jar 任务打包 sourceSets.main 的全部输出
+//（即 forge + common + mccore 三层编译产物与资源），与 neoforge/fabric 一致。
+jar {
+    archiveFileName = "${mod_id}-${mod_version}+mc${minecraft_version}-forge.jar"
+    // 合并三层源码后，resources 与 java 输出理论上无冲突；以 exclude 策略兜底，避免极端重复条目导致构建失败。
+    duplicatesStrategy = 'exclude'
+    // Forge 26.2 的 mods.toml 解析器（fmlloader ModFileParser）不识别 [[mixins]] 段，
+    // Mixin 配置改由 jar manifest 的 MixinConfigs 属性注册（由 JarInJarDependencyLocator 读取）。
+    // 缺这一行时 SyncPauseMixin / TempCleanupMixin 不会加载，客户端暂停保持与声道清理能力缺失。
+    manifest {
+        attributes 'MixinConfigs': 'yunyy.mixins.json'
+    }
+}

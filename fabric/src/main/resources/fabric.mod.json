@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "yunyy",
+  "version": "1.0.0",
+  "name": "云音乐",
+  "description": "直接在我的世界里面听歌。支持网易云、酷狗、QQ 音乐三平台点歌、歌单与账号 VIP 状态，可以让服务器内的玩家同步聆听或自己聆听。本模组由 eecccm 与 AI 协作完成，部分内容由 AI 辅助生成。",
+  "authors": [
+    "eecccm"
+  ],
+  "license": "GPL-3.0 with linking exception",
+  "icon": "assets/yunyy/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.eecccm.yunyy.fabric.YunyyMod"
+    ],
+    "client": [
+      "com.eecccm.yunyy.fabric.client.YunyyModClient"
+    ]
+  },
+  "mixins": [
+    "yunyy.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/core-3.5.3.jar"
+    },
+    {
+      "file": "META-INF/jars/jlayer-1.0.1.jar"
+    }
+  ],
+  "custom": {
+    "yunyy:ai_generated": true
+  }
+}

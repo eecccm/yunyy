@@ -1,0 +1,27 @@
+# ===== 构建产物（Gradle）=====
+# 注意：不能用前导斜杠，否则只忽略「仓库根目录」下的 build/，
+#       各子模块（common/fabric/forge/neoforge/mccore）自带的 build/ 将不会被忽略。
+# 去掉前导斜杠后，任意层级的 build/、out/、classes/、.gradle/ 均被忽略。
+build/
+out/
+classes/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# ===== IDE / 编辑器 =====
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ===== 日志 / 临时 =====
+*.log
+/logs/
+
+# ===== 操作系统 =====
+Thumbs.db
+.DS_Store
+
+# ===== 本地配置（不提交本机路径）=====
+*.local
+local.properties

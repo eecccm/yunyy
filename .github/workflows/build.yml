@@ -1,0 +1,72 @@
+# 云音乐（yunyy）多加载器自动构建流水线
+#
+# 作用：在 GitHub 托管的 Runner（境外网络，可正常访问 maven.neoforged.net）上
+#       自动构建 Forge 与 NeoForge 两个加载器的模组 jar，并作为构建产物（Artifact）产出。
+#
+# 触发时机：
+#   - 推送到 main / master 分支
+#   - 发布 Release（published）
+#   - 手动在 Actions 页面点击 Run workflow（workflow_dispatch）
+#
+# 说明：
+#   - 目标 MC 26.2 要求 Java 25，因此使用 Temurin 25。
+#   - Gradle Wrapper 已指向 9.7.0（支持 Java 25 守护进程）。
+#   - 仅构建 Forge / NeoForge：Fabric 版 jar 此前已构建并装入实例；
+#     且 MC 26.2 官方未发布混淆映射、Yarn 无 26.x 构建，Fabric 经 Loom 当前无法搭建，
+#     故 Fabric 暂不在 CI 中构建（其 jar 已随实例分发）。
+#   - 使用 --configure-on-demand 跳过未参与构建的 fabric 模块配置，加快构建。
+
+name: Build Mod Jars
+
+on:
+  push:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+# 赋予最小必要权限：
+#   - contents: read   —— 检出代码
+#   - actions: write   —— upload-artifact@v4 需通过 Actions Artifacts API 上传产物，
+#                         显式 permissions 会覆盖默认令牌权限，必须显式放开，否则上传步骤报 403
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build:
+    name: Build Forge & NeoForge
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 25（Temurin）
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: 赋予 gradlew 可执行权限
+        run: chmod +x ./gradlew
+
+      - name: 设置 Gradle（含依赖缓存）
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          # 使用项目内置的 Gradle 9.7.0 Wrapper；开启构建缓存以加速重跑
+          cache-disabled: false
+
+      - name: 构建 Forge 与 NeoForge
+        run: ./gradlew --configure-on-demand :forge:build :neoforge:build --no-daemon
+
+      - name: 上传构建产物（jar）
+        uses: actions/upload-artifact@v4
+        with:
+          name: yunyy-mod-jars
+          path: |
+            forge/build/libs/*.jar
+            neoforge/build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 30

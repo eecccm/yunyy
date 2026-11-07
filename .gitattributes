@@ -1,0 +1,40 @@
+# ===== 行尾统一（跨平台构建必需）=====
+# gradlew 是 POSIX shell 脚本，必须以 LF 结尾；若在 Windows 以 CRLF 检出，
+# Linux/macOS Runner 上会报 "bad interpreter: /usr/bin/env bash^M"。
+# 本仓库当前未开启 autocrlf，此处显式固化策略，防止后续克隆端误转换。
+* text=auto
+
+# 包装脚本：强制 LF（Unix shell 解释器逐字节敏感）
+gradlew    text eol=lf
+*.sh       text eol=lf
+
+# Windows 批处理：强制 CRLF
+gradlew.bat text eol=crlf
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# ===== 构建产物 / 依赖库：不做行尾与文本转换 =====
+*.jar binary
+*.png binary
+*.ico binary
+*.docx binary
+*.zip binary
+*.pdf binary
+
+# ===== 源码与配置按文本处理，统一 LF =====
+*.java text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yml  text eol=lf
+*.properties text eol=lf
+*.gradle text eol=lf
+*.md text eol=lf
+
+# ===== 差异与合并策略 =====
+*.jar diff=binary
+*.png diff=binary
+*.docx diff=binary
+
+# 第三方嵌套库与 Wrapper 二进制：不计入语言统计
+gradle/wrapper/gradle-wrapper.jar linguist-vendored=true
+fabric/src/main/resources/META-INF/jars/** linguist-vendored=true
