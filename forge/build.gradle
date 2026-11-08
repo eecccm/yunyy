@@ -98,6 +98,12 @@ dependencies {
 
     // Gson：common 层以 api 暴露的版本，此处对齐引入。common 源码编译时依赖 Gson。
     implementation 'com.google.code.gson:gson:2.10.1'
+
+    // 音频解码（jlayer）与二维码（zxing）：mccore 源码直接引用其类。
+    // Forge 26.2 的 jar-in-jar 定位器只识别带模组元数据的嵌套 jar，纯库 jar 会加载失败，
+    // 因此这里以本地文件依赖提供编译类路径，并在下方 jar 任务把类合并进主 jar。
+    implementation files('../common/src/main/resources/META-INF/jars/core-3.5.3.jar',
+                         '../common/src/main/resources/META-INF/jars/jlayer-1.0.1.jar')
 }
 
 processResources {
@@ -119,6 +125,19 @@ jar {
     archiveFileName = "${mod_id}-${mod_version}+mc${minecraft_version}-forge.jar"
     // 合并三层源码后，resources 与 java 输出理论上无冲突；以 exclude 策略兜底，避免极端重复条目导致构建失败。
     duplicatesStrategy = 'exclude'
+    // Forge 26.2 的 jar-in-jar 定位器只接受带 Forge jarjar 元数据的嵌套 jar，
+    // META-INF/jars 下这两个库带的是 Fabric 元数据，会被拒绝加载；
+    // 因此改为把库类直接并入主 jar（等价 shadow 合并），并排除嵌套目录本身。
+    // 两库均无 module-info，且 MC/Forge 构件内不存在同名包，合并不产生冲突。
+    exclude 'META-INF/jars/**'
+    from({ zipTree('../common/src/main/resources/META-INF/jars/core-3.5.3.jar') }) {
+        exclude 'META-INF/**'
+        exclude 'fabric.mod.json'
+    }
+    from({ zipTree('../common/src/main/resources/META-INF/jars/jlayer-1.0.1.jar') }) {
+        exclude 'META-INF/**'
+        exclude 'fabric.mod.json'
+    }
     // Forge 26.2 的 mods.toml 解析器（fmlloader ModFileParser）不识别 [[mixins]] 段，
     // Mixin 配置改由 jar manifest 的 MixinConfigs 属性注册（由 JarInJarDependencyLocator 读取）。
     // 缺这一行时 SyncPauseMixin / TempCleanupMixin 不会加载，客户端暂停保持与声道清理能力缺失。

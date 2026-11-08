@@ -29,6 +29,11 @@ dependencies {
     // mccore 不再以 implementation 引入（其 jar 已禁用），改由下方 neoForge{ mods{ sourceSet } }
     // 以源集方式参与本模组的编译与打包，由加载器提供反混淆后的 Minecraft 类。
     implementation project(':common')
+
+    // 音频解码（jlayer）与二维码（zxing）：mccore 源码直接引用其类，
+    // 以本地文件依赖提供编译类路径，并在下方 jar 任务把类合并进主 jar。
+    implementation files('../common/src/main/resources/META-INF/jars/core-3.5.3.jar',
+                         '../common/src/main/resources/META-INF/jars/jlayer-1.0.1.jar')
 }
 
 neoForge {
@@ -72,4 +77,16 @@ tasks.withType(JavaCompile).configureEach {
 // 仅自定义产出文件名。
 jar {
     archiveFileName = "${mod_id}-${mod_version}+mc${minecraft_version}-neoforge.jar"
+    // 与 forge 模块同理：NeoForge 的嵌套 jar 定位器不识别 META-INF/jars 下的
+    // Fabric 元数据库 jar，改为把库类平铺合并进主 jar 并排除嵌套目录本身。
+    exclude 'META-INF/jars/**'
+    duplicatesStrategy = 'exclude'
+    from({ zipTree('../common/src/main/resources/META-INF/jars/core-3.5.3.jar') }) {
+        exclude 'META-INF/**'
+        exclude 'fabric.mod.json'
+    }
+    from({ zipTree('../common/src/main/resources/META-INF/jars/jlayer-1.0.1.jar') }) {
+        exclude 'META-INF/**'
+        exclude 'fabric.mod.json'
+    }
 }
